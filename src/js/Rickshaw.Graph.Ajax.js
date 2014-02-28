@@ -70,5 +70,19 @@ Rickshaw.Graph.Ajax = Rickshaw.Class.create( {
 
 		return series;
 	}
-} );
+});
+
+Rickshaw.Graph.Ajax.genURL = function(series) {
+  var nb = 0;
+  var url = "";
+  series.forEach(function(s) {
+    if (s.is_data){
+      url += s.id+",";
+      nb++;
+    }
+  });
+  url = url.slice(0, -1) + ((!nb)? "1":"");
+  return url;
+};
+
 

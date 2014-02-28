@@ -36,7 +36,8 @@ var Rickshaw = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-	var d3 = require('d3');
+  var d3 = require('d3');
+  var moment = require('moment');
 	module.exports = Rickshaw;
 }
 
@@ -1275,7 +1276,146 @@ Rickshaw.Graph.Ajax = Rickshaw.Class.create( {
 
 		return series;
 	}
-} );
+});
+
+Rickshaw.Graph.Ajax.genURL = function(series) {
+  var nb = 0;
+  var url = "";
+  series.forEach(function(s) {
+    if (s.is_data){
+      url += s.id+",";
+      nb++;
+    }
+  });
+  url = url.slice(0, -1) + ((!nb)? "1":"");
+  return url;
+};
+
+
+Rickshaw.namespace('Rickshaw.Graph.Ajax.PointFrequency');
+
+Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax, {
+
+  initialize: function(args) {
+
+    if (!args.leftElement) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a left element";
+    if (!args.rightElement) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a right element";
+    if (!args.selectorElement) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a selector element";
+    if (!args.element) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a graph element";
+
+    this.dataURL = args.dataURL;
+    this.ajaxType = args.ajaxType || "POST";
+    
+    this.selectedFrequency = this._isSelectFreqValid(args.selectedFrequency, "week");
+    this.pointFrequency = this._calcPointFrequency(this.selectedFrequency);
+    this.endDate = args.endDate || moment().format();
+    this.startDate = args.startDate || moment(this.endDate).subtract(this.selectedFrequency, 1).format();
+    
+    this.leftElement = args.leftElement;
+    this.rightElement = args.rightElement;
+    this.selectorElement = args.selectorElement;
+
+    this.onData = args.onData || function(d) { return d };
+    this.onComplete = args.onComplete || function() {};
+    this.onError = args.onError || function() {};
+
+    this.args = args;
+
+    this.render();
+
+    // this.graph.onUpdate(function() {});
+    this.request();
+  },
+
+  request: function() {
+
+    $.ajax( {
+      type: this.ajaxType,
+      url: this.dataURL,
+      data: {
+        pointFrequency: this.pointFrequency,
+        startDate: this.startDate,
+        endDate: this.endDate
+      },
+      dataType: 'json',
+      success: this.success.bind(this),
+      error: this.error.bind(this)
+    } );
+  },
+
+  render: function() {
+    var self = this;
+
+    var leftAnchor = document.createElement('a');
+    leftAnchor.className = "glyphicon glyphicon-chevron-left";
+    this.leftElement.appendChild(leftAnchor);
+    
+    var rightAnchor = document.createElement('a');
+    rightAnchor.className = "glyphicon glyphicon-chevron-right";
+    this.rightElement.appendChild(rightAnchor);
+
+    var selectList = document.createElement('ul');
+    selectList.className = "selectorUl list-inline";
+    this.selectorElement.appendChild(selectList);
+    var listOptions = ["day", "week", "month", "year"];
+    var listTitles = ["Jour", "Semaine", "Mois", "Année"];
+    for(var i=0; i<listOptions.length; i++) {
+      var line = document.createElement('li');
+      line.dataset.freq = listOptions[i];
+      var anchor = document.createElement('a');
+      anchor.innerHTML = listTitles[i];
+      
+      line.addEventListener('click', function(e) {
+        self.selectedFrequency = self._isSelectFreqValid(this.getAttribute("data-freq"), "week");
+        self.pointFrequency = self._calcPointFrequency(self.selectedFrequency);
+        self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
+        self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+        self.request();
+      });  
+      line.appendChild(anchor);
+      selectList.appendChild(line);
+    }
+
+
+    leftAnchor.addEventListener('click', function(e) {
+      self.endDate = self.startDate;
+      self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
+      self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+      self.request();
+    });
+    rightAnchor.addEventListener('click', function(e) {
+      self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+      self.startDate = self.endDate;
+      self.endDate = moment(self.endDate).add(self.selectedFrequency, 1).format();
+      if(moment(self.endDate) > moment()){
+        self.endDate = moment().format();
+        self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
+      }
+      self.request();
+    });
+  },
+
+  _calcPointFrequency: function(frequency){
+    switch (frequency){
+      case "day":
+        return "minute";
+      case "week":
+        return "hour";
+      case "month":
+        return "hour";
+      case "year":
+        return "day";
+    }
+  },
+
+  _isSelectFreqValid: function(toTest, defaultVal){
+    if ((toTest=="day")||(toTest=="week")||(toTest=="month")||(toTest=="year"))
+      return toTest;
+    else
+      return defaultVal; 
+  }
+});
+
 
 Rickshaw.namespace('Rickshaw.Graph.Annotate');
 
@@ -1892,6 +2032,8 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
 
 	this.graph = args.graph;
 	this.legend = args.legend;
+  this.transport = args.transport;
+  this.callback = args.callback;
 
 	var self = this;
 
@@ -1904,59 +2046,87 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
 		anchor.onclick = function(e) {
 			if (line.series.disabled) {
 				line.series.enable();
+        // Dynamically get missing data
+        if (!line.series.is_data){
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          line.series.is_data = true;
+          self.transport.request();
+          self.callback(line.series.id, true);
+        }
 				line.element.classList.remove('disabled');
 			} else { 
 				if (this.graph.series.filter(function(s) { return !s.disabled }).length <= 1) return;
 				line.series.disable();
 				line.element.classList.add('disabled');
+        self.callback(line.series.id, false);
 			}
 
 		}.bind(this);
 		
-                var label = line.element.getElementsByTagName('span')[0];
-                label.onclick = function(e){
+    var label = line.element.getElementsByTagName('span')[0];
+    label.onclick = function(e){
 
-                        var disableAllOtherLines = line.series.disabled;
-                        if ( ! disableAllOtherLines ) {
-                                for ( var i = 0; i < self.legend.lines.length; i++ ) {
-                                        var l = self.legend.lines[i];
-                                        if ( line.series === l.series ) {
-                                                // noop
-                                        } else if ( l.series.disabled ) {
-                                                // noop
-                                        } else {
-                                                disableAllOtherLines = true;
-                                                break;
-                                        }
-                                }
-                        }
+      var disableAllOtherLines = line.series.disabled;
+      var getAllUrl = "";
+      if ( ! disableAllOtherLines ) {
+        for ( var i = 0; i < self.legend.lines.length; i++ ) {
+          var l = self.legend.lines[i];
+          if ( line.series === l.series ) {
+            // noop
+            console.log(2);
+          } else if ( l.series.disabled ) {
+            // noop
+            // Dynamically get missing data
+            if (!l.series.is_data){
+              getAllUrl += l.series.id + ",";
+              l.series.is_data = true;
+            }                                        
+          } else {
+            disableAllOtherLines = true;
+            break;
+          }
+        }
+        // Dynamically get missing data
+        if (getAllUrl){
+          getAllUrl = getAllUrl.slice(0,-1);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, getAllUrl);
+          self.transport.request();
+          self.callback(getAllUrl, true);
+        } 
+      }
+      // show all or none
+      if ( disableAllOtherLines ) {
+        // these must happen first or else we try ( and probably fail ) to make a no line graph
+        line.series.enable();
+        // Dynamically get missing data
+        if (!line.series.is_data){
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          line.series.is_data = true;
+          self.transport.request();
+          self.callback(getAllUrl, true);
+        }
+        line.element.classList.remove('disabled');
 
-                        // show all or none
-                        if ( disableAllOtherLines ) {
+        self.legend.lines.forEach(function(l){
+          if ( line.series === l.series ) {
+            // noop
+          } else {
+            l.series.disable();
+            l.element.classList.add('disabled');
+            console.log(1);
+            self.callback(l.series.id, false);
+          }
+        });
 
-                                // these must happen first or else we try ( and probably fail ) to make a no line graph
-                                line.series.enable();
-                                line.element.classList.remove('disabled');
+      } else {
+        self.legend.lines.forEach(function(l){
+          l.series.enable();
+          l.element.classList.remove('disabled');
+        });
 
-                                self.legend.lines.forEach(function(l){
-                                        if ( line.series === l.series ) {
-                                                // noop
-                                        } else {
-                                                l.series.disable();
-                                                l.element.classList.add('disabled');
-                                        }
-                                });
+      }
 
-                        } else {
-
-                                self.legend.lines.forEach(function(l){
-                                        l.series.enable();
-                                        l.element.classList.remove('disabled');
-                                });
-
-                        }
-
-                };
+    };
 
 	};
 
@@ -2397,6 +2567,8 @@ Rickshaw.Graph.RangeSlider = Rickshaw.Class.create({
 		var element = this.element = args.element;
 		var graph = this.graph = args.graph;
 
+		this.slideCallbacks = [];
+
 		this.build();
 
 		graph.onUpdate( function() { this.update() }.bind(this) );
@@ -2408,6 +2580,7 @@ Rickshaw.Graph.RangeSlider = Rickshaw.Class.create({
 		var graph = this.graph;
 
 		var domain = graph.dataDomain();
+		var self = this;
 
 		$( function() {
 			$(element).slider( {
@@ -2432,9 +2605,14 @@ Rickshaw.Graph.RangeSlider = Rickshaw.Class.create({
 					if (domain[0] == ui.values[0]) {
 						graph.window.xMin = undefined;
 					}
+
 					if (domain[1] == ui.values[1]) {
 						graph.window.xMax = undefined;
 					}
+
+					self.slideCallbacks.forEach(function(callback) {
+						callback(graph, graph.window.xMin, graph.window.xMax);
+					});
 				}
 			} );
 		} );
@@ -2463,6 +2641,10 @@ Rickshaw.Graph.RangeSlider = Rickshaw.Class.create({
 		}
 
 		$(element).slider('option', 'values', values);
+	},
+
+	onSlide: function(callback) {
+		this.slideCallbacks.push(callback);
 	}
 });
 
@@ -2492,6 +2674,8 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 		this.defaults.gripperColor = d3.rgb(this.defaults.frameColor).darker().toString(); 
 
 		this.configureCallbacks = [];
+		this.slideCallbacks = [];
+
 		this.previews = [];
 
 		args.width = args.width || this.graphs[0].width || this.defaults.width;
@@ -2499,6 +2683,10 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 
 		this.configure(args);
 		this.render();
+	},
+
+	onSlide: function(callback) {
+		this.slideCallbacks.push(callback);
 	},
 
 	onConfigure: function(callback) {
@@ -2551,12 +2739,14 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 
 			var graphArgs = Rickshaw.extend({}, parent.config);
 			var height = self.previewHeight / self.graphs.length;
+			var renderer = parent.renderer.name;
 
 			Rickshaw.extend(graphArgs, {
 				element: this.appendChild(document.createElement("div")),
 				height: height,
 				width: self.previewWidth,
-				series: parent.series
+				series: parent.series,
+        renderer: renderer,
 			});
 
 			var graph = new Rickshaw.Graph(graphArgs);
@@ -2814,7 +3004,7 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 			self.graphs.forEach(function(graph) {
 
 				var domainScale = d3.scale.linear()
-					.interpolate(d3.interpolateRound)
+					.interpolate(d3.interpolateNumber)
 					.domain([0, self.previewWidth])
 					.range(graph.dataDomain());
 
@@ -2822,6 +3012,10 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 					domainScale(frameAfterDrag[0]),
 					domainScale(frameAfterDrag[1])
 				];
+
+				self.slideCallbacks.forEach(function(callback) {
+					callback(graph, windowAfterDrag[0], windowAfterDrag[1]);
+				});
 
 				if (frameAfterDrag[0] === 0) {
 					windowAfterDrag[0] = undefined;
@@ -2831,7 +3025,7 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 				}
 				graph.window.xMin = windowAfterDrag[0];
 				graph.window.xMax = windowAfterDrag[1];
-				
+
 				graph.update();
 			});
 		}
@@ -3456,8 +3650,14 @@ Rickshaw.Graph.Renderer.Multi = Rickshaw.Class.create( Rickshaw.Graph.Renderer, 
 				.map( function(s) { return s.stack });
 
 			if (!data.length) return;
-
-			var domain = $super(data);
+			
+			var domain = null;
+			if (group.renderer && group.renderer.domain) {
+				domain = group.renderer.domain(data);
+			}
+			else {
+				domain = $super(data);
+			}
 			domains.push(domain);
 		});
 

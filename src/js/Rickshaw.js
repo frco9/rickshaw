@@ -36,7 +36,8 @@ var Rickshaw = {
 };
 
 if (typeof module !== 'undefined' && module.exports) {
-	var d3 = require('d3');
+  var d3 = require('d3');
+  var moment = require('moment');
 	module.exports = Rickshaw;
 }
 

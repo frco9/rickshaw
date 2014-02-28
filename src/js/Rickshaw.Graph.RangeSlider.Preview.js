@@ -96,7 +96,7 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 				height: height,
 				width: self.previewWidth,
 				series: parent.series,
-				renderer: renderer
+        renderer: renderer,
 			});
 
 			var graph = new Rickshaw.Graph(graphArgs);

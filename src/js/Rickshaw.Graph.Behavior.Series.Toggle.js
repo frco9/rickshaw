@@ -4,6 +4,8 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
 
 	this.graph = args.graph;
 	this.legend = args.legend;
+  this.transport = args.transport;
+  this.callback = args.callback;
 
 	var self = this;
 
@@ -16,59 +18,87 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
 		anchor.onclick = function(e) {
 			if (line.series.disabled) {
 				line.series.enable();
+        // Dynamically get missing data
+        if (!line.series.is_data){
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          line.series.is_data = true;
+          self.transport.request();
+          self.callback(line.series.id, true);
+        }
 				line.element.classList.remove('disabled');
 			} else { 
 				if (this.graph.series.filter(function(s) { return !s.disabled }).length <= 1) return;
 				line.series.disable();
 				line.element.classList.add('disabled');
+        self.callback(line.series.id, false);
 			}
 
 		}.bind(this);
 		
-                var label = line.element.getElementsByTagName('span')[0];
-                label.onclick = function(e){
+    var label = line.element.getElementsByTagName('span')[0];
+    label.onclick = function(e){
 
-                        var disableAllOtherLines = line.series.disabled;
-                        if ( ! disableAllOtherLines ) {
-                                for ( var i = 0; i < self.legend.lines.length; i++ ) {
-                                        var l = self.legend.lines[i];
-                                        if ( line.series === l.series ) {
-                                                // noop
-                                        } else if ( l.series.disabled ) {
-                                                // noop
-                                        } else {
-                                                disableAllOtherLines = true;
-                                                break;
-                                        }
-                                }
-                        }
+      var disableAllOtherLines = line.series.disabled;
+      var getAllUrl = "";
+      if ( ! disableAllOtherLines ) {
+        for ( var i = 0; i < self.legend.lines.length; i++ ) {
+          var l = self.legend.lines[i];
+          if ( line.series === l.series ) {
+            // noop
+            console.log(2);
+          } else if ( l.series.disabled ) {
+            // noop
+            // Dynamically get missing data
+            if (!l.series.is_data){
+              getAllUrl += l.series.id + ",";
+              l.series.is_data = true;
+            }                                        
+          } else {
+            disableAllOtherLines = true;
+            break;
+          }
+        }
+        // Dynamically get missing data
+        if (getAllUrl){
+          getAllUrl = getAllUrl.slice(0,-1);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, getAllUrl);
+          self.transport.request();
+          self.callback(getAllUrl, true);
+        } 
+      }
+      // show all or none
+      if ( disableAllOtherLines ) {
+        // these must happen first or else we try ( and probably fail ) to make a no line graph
+        line.series.enable();
+        // Dynamically get missing data
+        if (!line.series.is_data){
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          line.series.is_data = true;
+          self.transport.request();
+          self.callback(getAllUrl, true);
+        }
+        line.element.classList.remove('disabled');
 
-                        // show all or none
-                        if ( disableAllOtherLines ) {
+        self.legend.lines.forEach(function(l){
+          if ( line.series === l.series ) {
+            // noop
+          } else {
+            l.series.disable();
+            l.element.classList.add('disabled');
+            console.log(1);
+            self.callback(l.series.id, false);
+          }
+        });
 
-                                // these must happen first or else we try ( and probably fail ) to make a no line graph
-                                line.series.enable();
-                                line.element.classList.remove('disabled');
+      } else {
+        self.legend.lines.forEach(function(l){
+          l.series.enable();
+          l.element.classList.remove('disabled');
+        });
 
-                                self.legend.lines.forEach(function(l){
-                                        if ( line.series === l.series ) {
-                                                // noop
-                                        } else {
-                                                l.series.disable();
-                                                l.element.classList.add('disabled');
-                                        }
-                                });
+      }
 
-                        } else {
-
-                                self.legend.lines.forEach(function(l){
-                                        l.series.enable();
-                                        l.element.classList.remove('disabled');
-                                });
-
-                        }
-
-                };
+    };
 
 	};
 

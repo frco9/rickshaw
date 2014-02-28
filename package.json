@@ -2,14 +2,16 @@
   "name": "rickshaw",
   "version": "1.4.6",
   "dependencies": {
-    "d3": "~3.3.6"
+    "d3": "~3.3.6",
+    "moment": "2.5.1"
   },
   "keywords": [
     "d3",
     "charts",
     "rickshaw",
     "svg",
-    "graph"
+    "graph",
+    "moment"
   ],
   "main": "./rickshaw",
   "engines": {

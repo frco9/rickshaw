@@ -5,8 +5,10 @@ CSS_MIN=$(NODE_MODULES)/.bin/cleancss
 JS_MIN=$(NODE_MODULES)/.bin/uglifyjs
 JS_HINT=$(NODE_MODULES)/.bin/jshint
 D3=$(NODE_MODULES)/d3
+MOMENT=$(NODE_MODULES)/moment
 JSDOM=$(NODE_MODULES)/jsdom
 NODEUNIT=$(NODE_MODULES)/nodeunit
+
 
 CSS_FILES=\
 	src/css/detail.css\
@@ -25,6 +27,7 @@ JS_FILES=\
 	src/js/Rickshaw.Fixtures.Number.js\
 	src/js/Rickshaw.Color.Palette.js\
 	src/js/Rickshaw.Graph.Ajax.js\
+	src/js/Rickshaw.Graph.Ajax.PointFrequency.js\
 	src/js/Rickshaw.Graph.Annotate.js\
 	src/js/Rickshaw.Graph.Axis.Time.js\
 	src/js/Rickshaw.Graph.Axis.X.js\
@@ -58,7 +61,7 @@ build: rickshaw.min.css rickshaw.min.js
 clean:
 	rm -rf rickshaw.css rickshaw.js rickshaw.min.*
 
-test: $(D3) $(JSDOM) $(NODEUNIT)
+test: $(D3) $(MOMENT) $(JSDOM) $(NODEUNIT)
 	npm test
 
 $(JS_HINT):
@@ -72,6 +75,9 @@ $(JS_MIN):
 
 $(D3):
 	npm install d3
+
+$(MOMENT):
+	npm install moment
 
 $(JSDOM):
 	npm install jsdom
