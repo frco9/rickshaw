@@ -1308,7 +1308,9 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     
     this.selectedFrequency = this._isSelectFreqValid(args.selectedFrequency, "week");
     this.pointFrequency = this._calcPointFrequency(this.selectedFrequency);
-    this.endDate = args.endDate || moment().format();
+    this.minDate = moment(args.minDate).format();
+    this.maxDate = moment(args.maxDate).format();
+    this.endDate = args.endDate || this.maxDate;
     this.startDate = args.startDate || moment(this.endDate).subtract(this.selectedFrequency, 1).format();
     
     this.leftElement = args.leftElement;
@@ -1378,20 +1380,30 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
 
 
     leftAnchor.addEventListener('click', function(e) {
-      self.endDate = self.startDate;
-      self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
-      self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
-      self.request();
-    });
-    rightAnchor.addEventListener('click', function(e) {
-      self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
-      self.startDate = self.endDate;
-      self.endDate = moment(self.endDate).add(self.selectedFrequency, 1).format();
-      if(moment(self.endDate) > moment()){
-        self.endDate = moment().format();
+      if(moment(self.startDate) != moment(self.minDate)){
+        self.endDate = self.startDate;
         self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
+        self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+        if(moment(self.startDate) < moment(self.minDate)){
+          self.startDate = self.minDate;
+          self.endDate = moment(self.startDate).add(self.selectedFrequency, 1).format();
+        }
+        self.request();
       }
-      self.request();
+    });
+
+    rightAnchor.addEventListener('click', function(e) {
+      // Little hack for some reason, "if(moment(self.endDate) != moment(self.maxDate))" is always true, still wonder why?
+      if(Math.abs(moment(self.endDate)-moment(self.maxDate)) > 0.0001){
+        self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+        self.startDate = self.endDate;
+        self.endDate = moment(self.endDate).add(self.selectedFrequency, 1).format();
+        if(moment(self.endDate) > moment(self.maxDate)){
+          self.endDate = self.maxDate;
+          self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
+        }
+        self.request();
+      }
     });
   },
 
@@ -2073,7 +2085,6 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           var l = self.legend.lines[i];
           if ( line.series === l.series ) {
             // noop
-            console.log(2);
           } else if ( l.series.disabled ) {
             // noop
             // Dynamically get missing data
@@ -2103,7 +2114,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(getAllUrl, true);
+          self.callback(line.series.id, true);
         }
         line.element.classList.remove('disabled');
 
@@ -2113,7 +2124,6 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           } else {
             l.series.disable();
             l.element.classList.add('disabled');
-            console.log(1);
             self.callback(l.series.id, false);
           }
         });

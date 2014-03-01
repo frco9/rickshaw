@@ -45,7 +45,6 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           var l = self.legend.lines[i];
           if ( line.series === l.series ) {
             // noop
-            console.log(2);
           } else if ( l.series.disabled ) {
             // noop
             // Dynamically get missing data
@@ -75,7 +74,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(getAllUrl, true);
+          self.callback(line.series.id, true);
         }
         line.element.classList.remove('disabled');
 
@@ -85,7 +84,6 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           } else {
             l.series.disable();
             l.element.classList.add('disabled');
-            console.log(1);
             self.callback(l.series.id, false);
           }
         });
