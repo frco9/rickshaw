@@ -60,9 +60,9 @@ Rickshaw.Graph.Ajax = Rickshaw.Class.create( {
 				if (!dataKey) throw "data needs a key or a name";
 
 				if (seriesKey == dataKey) {
-					var properties = ['color', 'name', 'data'];
+					var properties = ['color', 'name', 'data', 'is_data', 'disabled'];
 					properties.forEach( function(p) {
-						if (d[p]) s[p] = d[p];
+            if (d.hasOwnProperty(p)) s[p] = d[p];
 					} );
 				}
 			} );
@@ -77,7 +77,7 @@ Rickshaw.Graph.Ajax.genURL = function(series) {
   var url = "";
   series.forEach(function(s) {
     if (s.is_data){
-      url += s.id+",";
+      url += s.id+"-"+s.data_type_id+",";
       nb++;
     }
   });

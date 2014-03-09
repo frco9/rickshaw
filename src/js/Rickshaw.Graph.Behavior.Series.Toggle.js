@@ -20,17 +20,17 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
 				line.series.enable();
         // Dynamically get missing data
         if (!line.series.is_data){
-          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, line.series.id+"-"+line.series.data_type_id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(line.series.id, true);
+          self.callback(line.series.id+"-"+line.series.data_type_id, true);
         }
 				line.element.classList.remove('disabled');
 			} else { 
 				if (this.graph.series.filter(function(s) { return !s.disabled }).length <= 1) return;
 				line.series.disable();
 				line.element.classList.add('disabled');
-        self.callback(line.series.id, false);
+        self.callback(line.series.id+"-"+line.series.data_type_id, false);
 			}
 
 		}.bind(this);
@@ -49,7 +49,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
             // noop
             // Dynamically get missing data
             if (!l.series.is_data){
-              getAllUrl += l.series.id + ",";
+              getAllUrl += l.series.id+"-"+l.series.data_type_id + ",";
               l.series.is_data = true;
             }                                        
           } else {
@@ -60,7 +60,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
         // Dynamically get missing data
         if (getAllUrl){
           getAllUrl = getAllUrl.slice(0,-1);
-          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, getAllUrl);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, getAllUrl);
           self.transport.request();
           self.callback(getAllUrl, true);
         } 
@@ -71,10 +71,10 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
         line.series.enable();
         // Dynamically get missing data
         if (!line.series.is_data){
-          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, line.series.id+"-"+line.series.data_type_id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(line.series.id, true);
+          self.callback(line.series.id+"-"+line.series.data_type_id, true);
         }
         line.element.classList.remove('disabled');
 
@@ -84,7 +84,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           } else {
             l.series.disable();
             l.element.classList.add('disabled');
-            self.callback(l.series.id, false);
+            self.callback(l.series.id+"-"+l.series.data_type_id, false);
           }
         });
 

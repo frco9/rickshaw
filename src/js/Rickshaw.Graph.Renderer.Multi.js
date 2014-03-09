@@ -75,7 +75,12 @@ Rickshaw.Graph.Renderer.Multi = Rickshaw.Class.create( Rickshaw.Graph.Renderer, 
 				var ns = "http://www.w3.org/2000/svg";
 				var vis = document.createElementNS(ns, 'g');
 
-				graph.vis[0][0].appendChild(vis);
+        // We place, stack and others in background, and lines in foreground
+        if(series.renderer == "line"){
+          graph.vis[0][0].appendChild(vis);
+        } else {
+          graph.vis[0][0].insertBefore(vis, graph.vis[0][0].firstChild);
+        }
 
 				var renderer = graph._renderers[series.renderer];
 

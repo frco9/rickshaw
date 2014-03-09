@@ -9,13 +9,15 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     if (!args.selectorElement) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a selector element";
     if (!args.element) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a graph element";
 
+    this.args = args;
+
     this.dataURL = args.dataURL;
     this.ajaxType = args.ajaxType || "POST";
     
     this.selectedFrequency = this._isSelectFreqValid(args.selectedFrequency, "week");
     this.pointFrequency = this._calcPointFrequency(this.selectedFrequency);
-    this.minDate = moment(args.minDate).format();
-    this.maxDate = moment(args.maxDate).format();
+    this.minDate = this._calcMinBoundery();
+    this.maxDate = this._calcMaxBoundery();
     this.endDate = args.endDate || this.maxDate;
     this.startDate = args.startDate || moment(this.endDate).subtract(this.selectedFrequency, 1).format();
     
@@ -27,7 +29,6 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     this.onComplete = args.onComplete || function() {};
     this.onError = args.onError || function() {};
 
-    this.args = args;
 
     this.render();
 
@@ -36,7 +37,6 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
   },
 
   request: function() {
-
     $.ajax( {
       type: this.ajaxType,
       url: this.dataURL,
@@ -77,7 +77,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
         self.selectedFrequency = self._isSelectFreqValid(this.getAttribute("data-freq"), "week");
         self.pointFrequency = self._calcPointFrequency(self.selectedFrequency);
         self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
-        self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+        // self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
         self.request();
       });  
       line.appendChild(anchor);
@@ -86,6 +86,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
 
 
     leftAnchor.addEventListener('click', function(e) {
+      self.minDate = self._calcMinBoundery() || self.minDate;
       if(moment(self.startDate) != moment(self.minDate)){
         self.endDate = self.startDate;
         self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
@@ -100,6 +101,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
 
     rightAnchor.addEventListener('click', function(e) {
       // Little hack for some reason, "if(moment(self.endDate) != moment(self.maxDate))" is always true, still wonder why?
+      self.maxDate = self._calcMaxBoundery() || self.maxDate;
       if(Math.abs(moment(self.endDate)-moment(self.maxDate)) > 0.0001){
         self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
         self.startDate = self.endDate;
@@ -126,6 +128,38 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     }
   },
 
+  _calcMinBoundery: function(){
+    var minDate;
+    this.args.series.forEach(function(s){
+      if(s.is_data){
+        minDate = s.minDate;
+        return;
+      }
+    });
+    this.args.series.forEach(function(s){
+      if ((s.is_data)&&(s.minDate < minDate)) {
+        minDate = s.minDate;
+      }
+    });
+    return minDate;
+  },
+
+  _calcMaxBoundery: function(){
+    var maxDate;
+    this.args.series.forEach(function(s){
+      if(s.is_data){
+        maxDate = s.maxDate;
+        return;
+      }
+    });
+    this.args.series.forEach(function(s){
+      if ((s.is_data)&&(s.maxDate > maxDate)) {
+        maxDate = s.maxDate;
+      }
+    });
+    return maxDate;
+  },
+
   _isSelectFreqValid: function(toTest, defaultVal){
     if ((toTest=="day")||(toTest=="week")||(toTest=="month")||(toTest=="year"))
       return toTest;
@@ -133,5 +167,35 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
       return defaultVal; 
   }
 });
+
+Rickshaw.Graph.Ajax.PointFrequency.fillAvg = function(series, fill) {
+
+  var x;
+  var pt1;
+  var pt2;
+  var avg = fill;
+  var i = 0;
+
+  var data = series.map( function(s) { return s.data } );
+
+  while ( i < Math.max.apply(null, data.map( function(d) { return d.length } )) ) {
+
+    x = Math.min.apply( null, 
+      data
+        .filter(function(d) { return d[i] })
+        .map(function(d) { return d[i].x })
+    );
+    data.forEach( function(d) {
+      if (!d[i] || d[i].x != x) {
+        var pt1 = (typeof(d[i])==='object')? d[i].y: ((typeof(d[i-1])==='object')? d[i-1].y: fill);
+        var pt2 = (typeof(d[i-1])==='object')? d[i-1].y: ((typeof(d[i])==='object')? d[i].y: fill);
+        avg = (pt1+pt2)/2.0;
+        d.splice(i, 0, { x: x, y: (avg) });
+      }
+    } );
+
+    i++;
+  }
+};
 
 

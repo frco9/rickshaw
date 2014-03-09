@@ -1266,9 +1266,9 @@ Rickshaw.Graph.Ajax = Rickshaw.Class.create( {
 				if (!dataKey) throw "data needs a key or a name";
 
 				if (seriesKey == dataKey) {
-					var properties = ['color', 'name', 'data'];
+					var properties = ['color', 'name', 'data', 'is_data', 'disabled'];
 					properties.forEach( function(p) {
-						if (d[p]) s[p] = d[p];
+            if (d.hasOwnProperty(p)) s[p] = d[p];
 					} );
 				}
 			} );
@@ -1283,7 +1283,7 @@ Rickshaw.Graph.Ajax.genURL = function(series) {
   var url = "";
   series.forEach(function(s) {
     if (s.is_data){
-      url += s.id+",";
+      url += s.id+"-"+s.data_type_id+",";
       nb++;
     }
   });
@@ -1303,13 +1303,15 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     if (!args.selectorElement) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a selector element";
     if (!args.element) throw "Rickshaw.Graph.Ajax.PointFrequency needs a reference to a graph element";
 
+    this.args = args;
+
     this.dataURL = args.dataURL;
     this.ajaxType = args.ajaxType || "POST";
     
     this.selectedFrequency = this._isSelectFreqValid(args.selectedFrequency, "week");
     this.pointFrequency = this._calcPointFrequency(this.selectedFrequency);
-    this.minDate = moment(args.minDate).format();
-    this.maxDate = moment(args.maxDate).format();
+    this.minDate = this._calcMinBoundery();
+    this.maxDate = this._calcMaxBoundery();
     this.endDate = args.endDate || this.maxDate;
     this.startDate = args.startDate || moment(this.endDate).subtract(this.selectedFrequency, 1).format();
     
@@ -1321,7 +1323,6 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     this.onComplete = args.onComplete || function() {};
     this.onError = args.onError || function() {};
 
-    this.args = args;
 
     this.render();
 
@@ -1330,7 +1331,6 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
   },
 
   request: function() {
-
     $.ajax( {
       type: this.ajaxType,
       url: this.dataURL,
@@ -1371,7 +1371,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
         self.selectedFrequency = self._isSelectFreqValid(this.getAttribute("data-freq"), "week");
         self.pointFrequency = self._calcPointFrequency(self.selectedFrequency);
         self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
-        self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+        // self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
         self.request();
       });  
       line.appendChild(anchor);
@@ -1380,6 +1380,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
 
 
     leftAnchor.addEventListener('click', function(e) {
+      self.minDate = self._calcMinBoundery() || self.minDate;
       if(moment(self.startDate) != moment(self.minDate)){
         self.endDate = self.startDate;
         self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
@@ -1394,6 +1395,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
 
     rightAnchor.addEventListener('click', function(e) {
       // Little hack for some reason, "if(moment(self.endDate) != moment(self.maxDate))" is always true, still wonder why?
+      self.maxDate = self._calcMaxBoundery() || self.maxDate;
       if(Math.abs(moment(self.endDate)-moment(self.maxDate)) > 0.0001){
         self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
         self.startDate = self.endDate;
@@ -1420,6 +1422,38 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     }
   },
 
+  _calcMinBoundery: function(){
+    var minDate;
+    this.args.series.forEach(function(s){
+      if(s.is_data){
+        minDate = s.minDate;
+        return;
+      }
+    });
+    this.args.series.forEach(function(s){
+      if ((s.is_data)&&(s.minDate < minDate)) {
+        minDate = s.minDate;
+      }
+    });
+    return minDate;
+  },
+
+  _calcMaxBoundery: function(){
+    var maxDate;
+    this.args.series.forEach(function(s){
+      if(s.is_data){
+        maxDate = s.maxDate;
+        return;
+      }
+    });
+    this.args.series.forEach(function(s){
+      if ((s.is_data)&&(s.maxDate > maxDate)) {
+        maxDate = s.maxDate;
+      }
+    });
+    return maxDate;
+  },
+
   _isSelectFreqValid: function(toTest, defaultVal){
     if ((toTest=="day")||(toTest=="week")||(toTest=="month")||(toTest=="year"))
       return toTest;
@@ -1427,6 +1461,36 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
       return defaultVal; 
   }
 });
+
+Rickshaw.Graph.Ajax.PointFrequency.fillAvg = function(series, fill) {
+
+  var x;
+  var pt1;
+  var pt2;
+  var avg = fill;
+  var i = 0;
+
+  var data = series.map( function(s) { return s.data } );
+
+  while ( i < Math.max.apply(null, data.map( function(d) { return d.length } )) ) {
+
+    x = Math.min.apply( null, 
+      data
+        .filter(function(d) { return d[i] })
+        .map(function(d) { return d[i].x })
+    );
+    data.forEach( function(d) {
+      if (!d[i] || d[i].x != x) {
+        var pt1 = (typeof(d[i])==='object')? d[i].y: ((typeof(d[i-1])==='object')? d[i-1].y: fill);
+        var pt2 = (typeof(d[i-1])==='object')? d[i-1].y: ((typeof(d[i])==='object')? d[i].y: fill);
+        avg = (pt1+pt2)/2.0;
+        d.splice(i, 0, { x: x, y: (avg) });
+      }
+    } );
+
+    i++;
+  }
+};
 
 
 Rickshaw.namespace('Rickshaw.Graph.Annotate');
@@ -2060,17 +2124,17 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
 				line.series.enable();
         // Dynamically get missing data
         if (!line.series.is_data){
-          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, line.series.id+"-"+line.series.data_type_id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(line.series.id, true);
+          self.callback(line.series.id+"-"+line.series.data_type_id, true);
         }
 				line.element.classList.remove('disabled');
 			} else { 
 				if (this.graph.series.filter(function(s) { return !s.disabled }).length <= 1) return;
 				line.series.disable();
 				line.element.classList.add('disabled');
-        self.callback(line.series.id, false);
+        self.callback(line.series.id+"-"+line.series.data_type_id, false);
 			}
 
 		}.bind(this);
@@ -2089,7 +2153,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
             // noop
             // Dynamically get missing data
             if (!l.series.is_data){
-              getAllUrl += l.series.id + ",";
+              getAllUrl += l.series.id+"-"+l.series.data_type_id + ",";
               l.series.is_data = true;
             }                                        
           } else {
@@ -2100,7 +2164,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
         // Dynamically get missing data
         if (getAllUrl){
           getAllUrl = getAllUrl.slice(0,-1);
-          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, getAllUrl);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, getAllUrl);
           self.transport.request();
           self.callback(getAllUrl, true);
         } 
@@ -2111,10 +2175,10 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
         line.series.enable();
         // Dynamically get missing data
         if (!line.series.is_data){
-          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]|,)+/g, line.series.id);
+          self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, line.series.id+"-"+line.series.data_type_id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(line.series.id, true);
+          self.callback(line.series.id+"-"+line.series.data_type_id, true);
         }
         line.element.classList.remove('disabled');
 
@@ -2124,7 +2188,7 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           } else {
             l.series.disable();
             l.element.classList.add('disabled');
-            self.callback(l.series.id, false);
+            self.callback(l.series.id+"-"+l.series.data_type_id, false);
           }
         });
 
@@ -3694,7 +3758,12 @@ Rickshaw.Graph.Renderer.Multi = Rickshaw.Class.create( Rickshaw.Graph.Renderer, 
 				var ns = "http://www.w3.org/2000/svg";
 				var vis = document.createElementNS(ns, 'g');
 
-				graph.vis[0][0].appendChild(vis);
+        // We place, stack and others in background, and lines in foreground
+        if(series.renderer == "line"){
+          graph.vis[0][0].appendChild(vis);
+        } else {
+          graph.vis[0][0].insertBefore(vis, graph.vis[0][0].firstChild);
+        }
 
 				var renderer = graph._renderers[series.renderer];
 
