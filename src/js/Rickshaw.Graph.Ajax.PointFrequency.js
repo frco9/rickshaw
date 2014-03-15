@@ -131,7 +131,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
   _calcMinBoundery: function(){
     var minDate;
     this.args.series.forEach(function(s){
-      if(s.is_data){
+      if((s.is_data)&&(s.minDate)){
         minDate = s.minDate;
         return;
       }
@@ -147,7 +147,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
   _calcMaxBoundery: function(){
     var maxDate;
     this.args.series.forEach(function(s){
-      if(s.is_data){
+      if((s.is_data)&&(s.maxDate)){
         maxDate = s.maxDate;
         return;
       }
