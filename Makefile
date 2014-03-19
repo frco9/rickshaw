@@ -9,6 +9,8 @@ MOMENT=$(NODE_MODULES)/moment
 JSDOM=$(NODE_MODULES)/jsdom
 NODEUNIT=$(NODE_MODULES)/nodeunit
 
+RICKSHAW_GEM_FILE= /Users/Jeremie/.rvm/gems/ruby-2.0.0-p247/bundler/gems/rickshaw_rails-5d135e1a4c6f/app/assets/javascripts/rickshaw.js
+RICKSHAW_GIT_FILE= /Users/Jeremie/Dropbox/ENSEIRB/2A/S7/PFA/free-ecobox/src/rickshaw_rails/app/assets/javascripts/rickshaw.js
 
 CSS_FILES=\
 	src/css/detail.css\
@@ -39,6 +41,7 @@ JS_FILES=\
 	src/js/Rickshaw.Graph.HoverDetail.js\
 	src/js/Rickshaw.Graph.JSONP.js\
 	src/js/Rickshaw.Graph.Legend.js\
+	src/js/Rickshaw.Graph.Legend.Typed.js\
 	src/js/Rickshaw.Graph.RangeSlider.js\
 	src/js/Rickshaw.Graph.RangeSlider.Preview.js\
 	src/js/Rickshaw.Graph.Renderer.js\
@@ -56,7 +59,7 @@ JS_FILES=\
 
 .PHONY: clean build
 
-build: rickshaw.min.css rickshaw.min.js
+build: rickshaw.min.css rickshaw.min.js movefile
 
 clean:
 	rm -rf rickshaw.css rickshaw.js rickshaw.min.*
@@ -97,3 +100,7 @@ rickshaw.min.css: $(CSS_MIN) rickshaw.css
 
 rickshaw.min.js: $(JS_MIN) rickshaw.js
 	$(JS_MIN) --reserved-names "\$$super" rickshaw.js > rickshaw.min.js
+
+movefile:
+	cp rickshaw.js $(RICKSHAW_GEM_FILE)
+	cp rickshaw.js $(RICKSHAW_GIT_FILE)
