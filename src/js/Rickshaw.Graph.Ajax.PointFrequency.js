@@ -14,7 +14,11 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     this.dataURL = args.dataURL;
     this.ajaxType = args.ajaxType || "POST";
     
-    this.selectedFrequency = this._isSelectFreqValid(args.selectedFrequency, "week");
+    if (this._isSelectFreqValid(args.selectedFrequency)) {
+      this.selectedFrequency = args.selectedFrequency;
+    } else {
+      this.selectedFrequency = "week";
+    }
     this.pointFrequency = this._calcPointFrequency(this.selectedFrequency);
     this.minDate = this._calcMinBoundery();
     this.maxDate = this._calcMaxBoundery();
@@ -73,13 +77,26 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
       var anchor = document.createElement('a');
       anchor.innerHTML = listTitles[i];
       
+      // If the current option is the default one, set it active.
+      if (listOptions[i] == this.selectedFrequency) {
+        anchor.classList.add('active');
+      }
+
       line.addEventListener('click', function(e) {
-        self.selectedFrequency = self._isSelectFreqValid(this.getAttribute("data-freq"), "week");
-        self.pointFrequency = self._calcPointFrequency(self.selectedFrequency);
-        self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
-        // self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
-        self.request();
-      });  
+        // If the selecteted frequency is the current or is not valide, don't fire a new ajax call.
+        if ((this.getAttribute("data-freq") != self.selectedFrequency) && (self._isSelectFreqValid(this.getAttribute("data-freq")))) {
+          self.selectedFrequency = this.getAttribute("data-freq");
+          self.pointFrequency = self._calcPointFrequency(self.selectedFrequency);
+          self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
+          self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+          self.request();
+          // Set the new selected frequency as active and remove active from others
+          // jQuery is supposed to be enable
+          $(".selectorUl > li > a").removeClass("active");
+          this.getElementsByTagName('a')[0].classList.add("active");
+        }
+      }); 
+
       line.appendChild(anchor);
       selectList.appendChild(line);
     }
@@ -100,8 +117,8 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     });
 
     rightAnchor.addEventListener('click', function(e) {
-      // Little hack for some reason, "if(moment(self.endDate) != moment(self.maxDate))" is always true, still wonder why?
       self.maxDate = self._calcMaxBoundery() || self.maxDate;
+      // Little hack for some reason, "if(moment(self.endDate) != moment(self.maxDate))" is always true, still wonder why?
       if(Math.abs(moment(self.endDate)-moment(self.maxDate)) > 0.0001){
         self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
         self.startDate = self.endDate;
@@ -160,11 +177,11 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     return maxDate;
   },
 
-  _isSelectFreqValid: function(toTest, defaultVal){
+  _isSelectFreqValid: function(toTest){
     if ((toTest=="day")||(toTest=="week")||(toTest=="month")||(toTest=="year"))
-      return toTest;
+      return true;
     else
-      return defaultVal; 
+      return false; 
   }
 });
 

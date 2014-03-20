@@ -68,10 +68,17 @@ Rickshaw.Graph.Legend.Typed = Rickshaw.Class.create( Rickshaw.Graph.Legend, {
 
       // For each series of this type we add a line to the legend
       series[key].forEach( function(s) {
-        s.name = s.name.split(" - ")[0];
         self.addLine(s);
-      });  
+      }); 
 
+      // For each li newly added we remove the type from legend
+      var li_s = this.list.getElementsByTagName('li'); 
+      for (var i = 0; i < li_s.length; ++i) {
+        span = li_s[i].getElementsByTagName('span')[0];
+        if (span){
+          span.innerHTML = span.innerHTML.split(" - ")[0];
+        }
+      }
     }
 
     // Create legend's open button
