@@ -23,8 +23,8 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, line.series.id+"-"+line.series.data_type_id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(line.series.id+"-"+line.series.data_type_id, true);
         }
+        self.callback(line.series.id+"-"+line.series.data_type_id, true);
 				line.element.classList.remove('disabled');
 			} else { 
 				if (this.graph.series.filter(function(s) { return !s.disabled }).length <= 1) return;
@@ -74,8 +74,8 @@ Rickshaw.Graph.Behavior.Series.Toggle = function(args) {
           self.transport.dataURL = self.transport.dataURL.replace(/([0-9]+-[0-9]+)(,?[0-9]+-[0-9]+)*/g, line.series.id+"-"+line.series.data_type_id);
           line.series.is_data = true;
           self.transport.request();
-          self.callback(line.series.id+"-"+line.series.data_type_id, true);
         }
+        self.callback(line.series.id+"-"+line.series.data_type_id, true);
         line.element.classList.remove('disabled');
 
         self.legend.lines.forEach(function(l){

@@ -105,8 +105,9 @@ Rickshaw.Graph.RangeSlider.Preview = Rickshaw.Class.create({
 			parent.onUpdate(function() { graph.render(); self.render() });
 
 			parent.onConfigure(function(args) { 
-				// don't propagate height
+				// don't propagate height and width
 				delete args.height;
+        delete args.width;
 				graph.configure(args);
 				graph.render();
 			});
