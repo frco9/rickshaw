@@ -9,7 +9,7 @@ MOMENT=$(NODE_MODULES)/moment
 JSDOM=$(NODE_MODULES)/jsdom
 NODEUNIT=$(NODE_MODULES)/nodeunit
 
-RICKSHAW_GEM_FILE= /Users/Jeremie/.rvm/gems/ruby-2.0.0-p247/bundler/gems/rickshaw_rails-5d135e1a4c6f/app/assets/javascripts/rickshaw.js
+RICKSHAW_GEM_FILE= /Users/Jeremie/.rvm/gems/ruby-2.0.0-p247/bundler/gems/rickshaw_rails-c74265abafc1/app/assets/javascripts/rickshaw.js
 RICKSHAW_GIT_FILE= /Users/Jeremie/Dropbox/ENSEIRB/2A/S7/PFA/free-ecobox/src/rickshaw_rails/app/assets/javascripts/rickshaw.js
 
 CSS_FILES=\

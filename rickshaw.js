@@ -1360,6 +1360,14 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
     rightAnchor.className = "glyphicon glyphicon-chevron-right";
     this.rightElement.appendChild(rightAnchor);
 
+    var timePeriodeRow = document.createElement('div');
+    timePeriodeRow.classList.add("row");
+    var timePeriode = document.createElement('span');
+    timePeriode.classList.add("col-xs-12");
+    timePeriode.innerHTML = "du "+moment(this.startDate).format("DD-MM-YYYY HH:mm")+" au "+moment(this.endDate).format("DD-MM-YYYY HH:mm");
+    timePeriodeRow.appendChild(timePeriode);
+    this.selectorElement.appendChild(timePeriodeRow);
+
     var selectList = document.createElement('ul');
     selectList.className = "selectorUl list-inline";
     this.selectorElement.appendChild(selectList);
@@ -1383,6 +1391,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
           self.pointFrequency = self._calcPointFrequency(self.selectedFrequency);
           self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
           self.dataURL = "/sensors/"+Rickshaw.Graph.Ajax.genURL(self.args.series)+"/sensor_data";
+          timePeriode.innerHTML = "du "+moment(self.startDate).format("DD-MM-YYYY HH:mm")+" au "+moment(self.endDate).format("DD-MM-YYYY HH:mm");
           self.request();
           // Set the new selected frequency as active and remove active from others
           // jQuery is supposed to be enable
@@ -1406,6 +1415,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
           self.startDate = self.minDate;
           self.endDate = moment(self.startDate).add(self.selectedFrequency, 1).format();
         }
+        timePeriode.innerHTML = "du "+moment(self.startDate).format("DD-MM-YYYY HH:mm")+" au "+moment(self.endDate).format("DD-MM-YYYY HH:mm");
         self.request();
       }
     });
@@ -1421,6 +1431,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
           self.endDate = self.maxDate;
           self.startDate = moment(self.endDate).subtract(self.selectedFrequency, 1).format();
         }
+        timePeriode.innerHTML = "du "+moment(self.startDate).format("DD-MM-YYYY HH:mm")+" au "+moment(self.endDate).format("DD-MM-YYYY HH:mm");
         self.request();
       }
     });
@@ -1823,7 +1834,8 @@ Rickshaw.namespace('Rickshaw.Graph.Axis.Y');
 Rickshaw.Graph.Axis.Y = Rickshaw.Class.create( {
 
 	initialize: function(args) {
-
+    
+    this.args = args;
 		this.graph = args.graph;
 		this.orientation = args.orientation || 'right';
 
@@ -1920,6 +1932,21 @@ Rickshaw.Graph.Axis.Y = Rickshaw.Class.create( {
 			.attr("class", ["y_ticks", this.ticksTreatment].join(" "))
 			.attr("transform", transform)
 			.call(axis.ticks(this.ticks).tickSubdivide(0).tickSize(this.tickSize));
+
+    // add label
+    if (this.args.label && this.args.label.text) {
+      var label = this.args.label;
+      this.vis.append("text")
+        .attr("class", "axis-label")
+        .attr("text-anchor", "end")
+        .attr("y", label.offsetX || "1em")
+        .attr("x", label.offsetY || "1em")
+        .style("color", label.color || "black")
+        .style("opacity", label.opacity || "0.5")
+        .style("font-size", label.fontSize || "10px")
+        .attr("transform", "rotate(-90)")
+        .text(label.text);
+    }
 
 		return axis;
 	},
