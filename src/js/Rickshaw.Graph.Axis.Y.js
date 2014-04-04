@@ -83,14 +83,23 @@ Rickshaw.Graph.Axis.Y = Rickshaw.Class.create( {
 	},
 
 	_drawAxis: function(scale) {
-		var axis = d3.svg.axis().scale(scale).orient(this.orientation);
+		var transform;
+    var axis = d3.svg.axis().scale(scale).orient(this.orientation);
 		axis.tickFormat(this.tickFormat);
 		if (this.tickValues) axis.tickValues(this.tickValues);
 
 		if (this.orientation == 'left') {
-			var berth = this.height * this.berthRate;
-			var transform = 'translate(' + this.width + ', ' + berth + ')';
-		}
+      var berth = this.height * this.berthRate;
+			if(this.args.label && this.args.label.text){
+        berth = this.args.label.height || 20; 
+      }
+			transform = 'translate(' + this.width + ', ' + berth + ')';
+		} else {
+      if(this.args.label && this.args.label.text){
+        berth = this.args.label.height || 20; 
+        transform = 'translate(' + 0 + ', ' + berth + ')';
+      }
+    }
 
 		if (this.element) {
 			this.vis.selectAll('*').remove();
@@ -105,6 +114,7 @@ Rickshaw.Graph.Axis.Y = Rickshaw.Class.create( {
     // add label
     if (this.args.label && this.args.label.text) {
       var label = this.args.label;
+      var labelHght = label.height || 20; 
       this.vis.append("text")
         .attr("class", "axis-label")
         .attr("text-anchor", "end")
@@ -113,8 +123,8 @@ Rickshaw.Graph.Axis.Y = Rickshaw.Class.create( {
         .style("color", label.color || "black")
         .style("opacity", label.opacity || "0.5")
         .style("font-size", label.fontSize || "10px")
-        .attr("transform", "rotate(-90)")
         .text(label.text);
+      this.element.style.top = -1 * labelHght + 'px';
     }
 
 		return axis;
