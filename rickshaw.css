@@ -337,15 +337,19 @@
 	padding: 0;
 	text-shadow: 0 0 1px #FFF;
 }
-.rickshaw_legend .action:hover {
+.rickshaw_legend .line.disabled .action:hover,.rickshaw_legend .line .action:hover {
 	opacity: 0.6;
 }
 .rickshaw_legend .action {
-	margin-right: 0.2em;
-	font-size: 14px;
-	opacity: 0.2;
-	cursor: pointer;
+  margin-right: 0.2em;
+  font-size: 14px;
+  opacity: inherit;
+  color: inherit;
+  cursor: pointer;
   float: none;
+}
+.rickshaw_legend .line.disabled .action {
+	opacity: 0.2;
 }
 .rickshaw_legend .line.disabled {
   color: #797979;
