@@ -57,7 +57,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
 
   render: function() {
     var self = this;
-
+    // Create HTML nodes
     var leftAnchor = document.createElement('a');
     leftAnchor.className = "glyphicon glyphicon-chevron-left";
     this.leftElement.appendChild(leftAnchor);
@@ -89,7 +89,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
       if (listOptions[i] == this.selectedFrequency) {
         anchor.classList.add('active');
       }
-
+      // Bind click event to newly created nodes
       line.addEventListener('click', function(e) {
         // If the selecteted frequency is the current or is not valide, don't fire a new ajax call.
         if ((this.getAttribute("data-freq") != self.selectedFrequency) && (self._isSelectFreqValid(this.getAttribute("data-freq")))) {
@@ -110,7 +110,7 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
       selectList.appendChild(line);
     }
 
-
+    // Bind click event to newly created nodes
     leftAnchor.addEventListener('click', function(e) {
       self.minDate = self._calcMinBoundery() || self.minDate;
       if(moment(self.startDate) != moment(self.minDate)){
@@ -125,7 +125,8 @@ Rickshaw.Graph.Ajax.PointFrequency = Rickshaw.Class.create( Rickshaw.Graph.Ajax,
         self.request();
       }
     });
-
+    
+    // Bind click event to newly created nodes
     rightAnchor.addEventListener('click', function(e) {
       self.maxDate = self._calcMaxBoundery() || self.maxDate;
       // Little hack for some reason, "if(moment(self.endDate) != moment(self.maxDate))" is always true, still wonder why?
